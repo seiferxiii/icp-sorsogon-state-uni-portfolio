@@ -19,7 +19,12 @@ export function CreateServer({ database }: CreateServerOptions) {
   app.use(cors());
   app.use(express.json());
 
-  app.use(function (err: Error, req: Request, res: Response, next: NextFunction) {
+  app.use(function (
+    err: Error,
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
     console.error(err.message);
     res.status(500).send("Something broke!");
   });
@@ -40,18 +45,28 @@ export function CreateServer({ database }: CreateServerOptions) {
   app.post("/initialize", AuthGuard, async (req: Request, res) => {
     try {
       const dataSource = await database.getDataSource();
-      const configurationRepository = dataSource.getRepository(ConfigurationEntity);
+      const configurationRepository =
+        dataSource.getRepository(ConfigurationEntity);
       const categoryRepository = dataSource.getRepository(CategoryEntity);
 
       await categoryRepository.save([
         {
           name: "General",
+          status: 1,
+          created_at: Date.now(),
+          updated_at: Date.now(),
         },
         {
           name: "Web3",
+          status: 1,
+          created_at: Date.now(),
+          updated_at: Date.now(),
         },
         {
           name: "ICP",
+          status: 1,
+          created_at: Date.now(),
+          updated_at: Date.now(),
         },
       ]);
 
@@ -87,7 +102,8 @@ export function CreateServer({ database }: CreateServerOptions) {
   app.get("/config", async (req: Request, res) => {
     try {
       const dataSource = await database.getDataSource();
-      const configurationRepository = dataSource.getRepository(ConfigurationEntity);
+      const configurationRepository =
+        dataSource.getRepository(ConfigurationEntity);
 
       const configurations = await configurationRepository.find();
 
@@ -180,7 +196,9 @@ export function CreateServer({ database }: CreateServerOptions) {
       const dataSource = await database.getDataSource();
       const userRepository = dataSource.getRepository(UserEntity);
       const checkIfEmailExists = await userRepository.findOneBy({ email });
-      const checkIfPrincipalIdExist = await userRepository.findOneBy({ principal_id: ic.caller().toText() });
+      const checkIfPrincipalIdExist = await userRepository.findOneBy({
+        principal_id: ic.caller().toText(),
+      });
 
       if (checkIfEmailExists) {
         res.status(400);
@@ -280,7 +298,8 @@ export function CreateServer({ database }: CreateServerOptions) {
     try {
       const dataSource = await database.getDataSource();
       const postRepository = dataSource.getRepository(PostEntity);
-      const configurationRepository = dataSource.getRepository(ConfigurationEntity);
+      const configurationRepository =
+        dataSource.getRepository(ConfigurationEntity);
 
       const checkIfAdmin = await configurationRepository.findOneBy({
         key: "admin_principal_id",
@@ -323,7 +342,8 @@ export function CreateServer({ database }: CreateServerOptions) {
 
     const dataSource = await database.getDataSource();
     const postRepository = dataSource.getRepository(PostEntity);
-    const configurationRepository = dataSource.getRepository(ConfigurationEntity);
+    const configurationRepository =
+      dataSource.getRepository(ConfigurationEntity);
 
     const checkIfAdmin = await configurationRepository.findOneBy({
       key: "admin_principal_id",
@@ -372,7 +392,8 @@ export function CreateServer({ database }: CreateServerOptions) {
 
     const dataSource = await database.getDataSource();
     const userRepository = dataSource.getRepository(UserEntity);
-    const configurationRepository = dataSource.getRepository(ConfigurationEntity);
+    const configurationRepository =
+      dataSource.getRepository(ConfigurationEntity);
 
     const checkIfAdmin = await configurationRepository.findOneBy({
       key: "admin_principal_id",
@@ -407,62 +428,67 @@ export function CreateServer({ database }: CreateServerOptions) {
     });
   });
 
-  app.post("/admin/configuration/manage", AuthGuard, async (req: Request, res) => {
-    const { key, value } = req.body;
+  app.post(
+    "/admin/configuration/manage",
+    AuthGuard,
+    async (req: Request, res) => {
+      const { key, value } = req.body;
 
-    if (!key) {
-      res.status(400);
-      res.json({
-        status: 0,
-        message: "Key is required.",
+      if (!key) {
+        res.status(400);
+        res.json({
+          status: 0,
+          message: "Key is required.",
+        });
+        return;
+      }
+
+      if (!value) {
+        res.status(400);
+        res.json({
+          status: 0,
+          message: "Value is required.",
+        });
+        return;
+      }
+
+      const dataSource = await database.getDataSource();
+      const configurationRepository =
+        dataSource.getRepository(ConfigurationEntity);
+
+      const checkIfAdmin = await configurationRepository.findOneBy({
+        key: "admin_principal_id",
+        value: ic.caller().toText(),
       });
-      return;
-    }
 
-    if (!value) {
-      res.status(400);
+      if (!checkIfAdmin) {
+        res.status(400);
+        res.json({
+          status: 0,
+          message: "Only admins can manage configurations.",
+        });
+        return;
+      }
+
+      const configuration = await configurationRepository.findOneBy({ key });
+
+      if (!configuration) {
+        res.status(404);
+        res.json({
+          status: 0,
+          message: "Configuration not found.",
+        });
+        return;
+      }
+
+      await configurationRepository.update({ key }, { value });
+
       res.json({
-        status: 0,
-        message: "Value is required.",
+        status: 1,
+        message: "Configuration updated!",
       });
-      return;
     }
-
-    const dataSource = await database.getDataSource();
-    const configurationRepository = dataSource.getRepository(ConfigurationEntity);
-
-    const checkIfAdmin = await configurationRepository.findOneBy({
-      key: "admin_principal_id",
-      value: ic.caller().toText(),
-    });
-
-    if (!checkIfAdmin) {
-      res.status(400);
-      res.json({
-        status: 0,
-        message: "Only admins can manage configurations.",
-      });
-      return;
-    }
-
-    const configuration = await configurationRepository.findOneBy({ key });
-
-    if (!configuration) {
-      res.status(404);
-      res.json({
-        status: 0,
-        message: "Configuration not found.",
-      });
-      return;
-    }
-
-    await configurationRepository.update({ key }, { value });
-
-    res.json({
-      status: 1,
-      message: "Configuration updated!",
-    });
-  });
+  );
 
   return app.listen();
 }

@@ -24,7 +24,6 @@
     },
     "frontend": {
       "type": "assets",
-      "dependencies": ["backend"],
       "frontend": {
         "entrypoint": "frontend/build/index.html"
       },

@@ -22,6 +22,27 @@ export default function IcConnectPage(): JSX.Element {
     }
   }
 
+  const getUserData = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    try {
+      const response = await backend.get("/user");
+      console.log(response.data, response);
+    } catch (error) {
+      console.error({ error });
+
+      const register = await backend.post("/user/register",{
+        email: "seiferxiii@gmail.com",
+        name: "Eliezer Rabadon",
+      },{
+        headers: {
+          "Content-Type": "application/json",
+        }
+      })
+      console.log(register.data)
+    }
+  }
+
   return (
     <>
       <Header />
@@ -38,6 +59,17 @@ export default function IcConnectPage(): JSX.Element {
               <p className="text-gray-700">
                 <strong>Principal ID:</strong> {identity.getPrincipal().toString()}
               </p>
+              {
+                isAuthenticated && <>
+                <form onSubmit={getUserData}>
+                <button
+                  type="submit"
+                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                  Get User Data
+                </button>
+              </form>
+                </>
+              }
             </div>
 
             <div className="bg-white rounded-lg shadow-md p-6">
@@ -85,6 +117,25 @@ function ContactForm(): JSX.Element {
     setEmail(e.target.value);
   };
 
+  const initializeSystem = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    try {
+      const response = await backend.post(
+        "/initialize",
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log(response.data, response);
+    } catch (error) {
+      console.error({ error });
+    }
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     // Handle form submission logic here
@@ -109,6 +160,16 @@ function ContactForm(): JSX.Element {
   };
 
   return (
+    <>
+    <br/>
+    <form onSubmit={initializeSystem}>
+    <button
+        type="submit"
+        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+        Initialize System
+      </button>
+    </form>
+    <br/>
     <form onSubmit={handleSubmit}>
       <div className="mb-4">
         <label htmlFor="name" className="block text-gray-700 font-bold mb-2">
@@ -139,6 +200,6 @@ function ContactForm(): JSX.Element {
         className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
         Submit
       </button>
-    </form>
+    </form></>
   );
 }
